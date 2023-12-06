@@ -38,4 +38,10 @@ called redisClient.
 - Export the redisClient instance.
 
 
+# Algorithm to solve Task 1 
+
+
+
+
+
 
