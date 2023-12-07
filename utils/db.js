@@ -1,4 +1,4 @@
-// Define the DBClient class in db.js
+// utils/db.js
 const { MongoClient } = require('mongodb');
 
 class DBClient {
@@ -40,10 +40,20 @@ class DBClient {
     const filesCollection = this.client.db().collection('files');
     return filesCollection.countDocuments();
   }
+
+  // Get a user by email
+  async getUserByEmail(email) {
+    const usersCollection = this.client.db().collection('users');
+    return usersCollection.findOne({ email });
+  }
+
+  // Create a new user
+  async createUser(email, password) {
+    const usersCollection = this.client.db().collection('users');
+    return usersCollection.insertOne({ email, password });
+  }
 }
 
-// Create an instance of DBClient
 const dbClient = new DBClient();
 
-// Export the dbClient instance
 module.exports = dbClient;
