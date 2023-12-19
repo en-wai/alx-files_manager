@@ -1,30 +1,26 @@
-// controllers/AppController.js
-const { response } = require('express');
-const dbClient = require('../utils/db');
-const redisClient = require('../utils/redis');
+import redisClient from '../utils/redis';
+import dbClient from '../utils/db';
 
-const AppController = {
-  getStatus: async (req, res) => {
-    const dbIsAlive = dbClient.isAlive();
-    const redisIsAlive = redisClient.isAlive();
-
-    if (dbIsAlive && redisIsAlive) {
-      res.status(200).json({ redis: true, db: true });
-    } else {
-      res.status(500).json({ redis: false, db: false });
-    }
-  },
-
-  getStats: async (req, res) => {
+class AppController {
+  static getStatus(request, response) {
     try {
-      const usersCount = await dbClient.nbUsers();
-      const filesCount = await dbClient.nbFiles();
-      res.status(200).json({ users: usersCount, files: filesCount });
+      const redis = redisClient.isAlive();
+      const db = dbClient.isAlive();
+      response.status(200).send({ redis, db });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+      console.log(error);
     }
-  },
-};
+  }
 
-module.exports = AppController;
+  static async getStats(request, response) {
+    try {
+      const users = await dbClient.nbUsers();
+      const files = await dbClient.nbFiles();
+      response.status(200).send({ users, files });
+    } catch (error) {
+      console.log(error);
+    }
+  }
+}
+
+export default AppController;
