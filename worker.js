@@ -1,40 +1,38 @@
-import Queue from 'bull';
-import dbClient from './utils/db';
-import imageThumbnail from 'image-thumbnail';
-import { ObjectId } from 'mongodb';
+import Bull from 'bull';
+import dbClient from './utils/db.js';
 import fs from 'fs';
+import path from 'path';
+import imageThumbnail from 'image-thumbnail';
 
-const queue = new Queue('fileQueue');
-const userQueue = new Queue('userQueue');
+// Create the queue
+const fileQueue = new Bull('fileQueue');
 
-queue.process( async (job, done) => {
-  const { userId, fileId } = job.data
-  if (!fileId) done(new Error('Missing fileId'));
-  if (!userId) done(new Error('Missing userId'));
+// Process the queue
+fileQueue.process(async (job) => {
+    const { userId, fileId } = job.data;
 
-  const file = await dbClient.db.collection('files').findOne({
-    _id: ObjectId(fileId),
-    userId: ObjectId(userId),
-  });
-  
-  if (!file) done(new Error('File not found'));
-  // Creating thumbnails of different sizes
-  const thumbnail500 = await imageThumbnail(file.localPath, { width: 500 } );
-  const thumbnail250 = await imageThumbnail(file.localPath, { width: 250 } );
-  const thumbnail100 = await imageThumbnail(file.localPath, { width: 100 } );
+    if (!fileId) throw new Error('Missing fileId');
+    if (!userId) throw new Error('Missing userId');
 
-  console.log('Saved thumbnails to filepath')
-  await fs.promises.writeFile(`${file.localPath}_500`, thumbnail500);
-  await fs.promises.writeFile(`${file.localPath}_250`, thumbnail250);
-  await fs.promises.writeFile(`${file.localPath}_100`, thumbnail100);
-  done();
-});
+    // Retrieve the file from the database
+    const file = await dbClient.client.db().collection('files').findOne({
+        _id: ObjectId(fileId),
+        userId: ObjectId(userId),
+    });
 
-userQueue.process(async (job, done) => {
-  const { userId } = job.data;
-  if (!userId) done(new Error('Missing userId'));
-  const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
-  if (!user) done(new Error('User not found'));
-  console.log(`Welcome ${user.email}`);
-  done();
+    if (!file) throw new Error('File not found');
+
+    // Ensure the file is an image
+    if (file.type !== 'image') throw new Error('File is not an image');
+
+    // Generate thumbnails and save them
+    const sizes = [500, 250, 100];
+    const originalPath = file.localPath;
+
+    for (const size of sizes) {
+        const options = { width: size };
+        const thumbnail = await imageThumbnail(originalPath, options);
+        const thumbnailPath = `${originalPath}_${size}`;
+        fs.writeFileSync(thumbnailPath, thumbnail);
+    }
 });

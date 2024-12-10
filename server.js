@@ -1,12 +1,22 @@
 import express from 'express';
-import routes from './routes';
+import routes from './routes/index';
+import cors from 'cors';
 
-const port = process.env.PORT || 5000;
+
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-app.use(express.json({ limit: '50mb' }));
-app.use(routes);
+// Use CORS to allow cross-origin requests if needed
+app.use(cors());
 
-app.listen(port, () => console.log(`Server running on ${port}`));
+// Middleware to parse JSON bodies
+app.use(express.json());  // This line is critical for parsing JSON request bodies.
 
-export default app;
+
+// Load routes
+app.use('/', routes);
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
